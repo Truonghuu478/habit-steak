@@ -13,7 +13,7 @@ Full-stack TypeScript MVP for habit streak tracking.
 ## Setup
 
 ```bash
-cp .env.example .env
+cp .env.example .env.development
 npm install
 npm run db:up
 npm run db:init
@@ -45,17 +45,28 @@ Use `npm run prisma:migrate -- --name <migration-name>` only when you intentiona
 
 ## Environment
 
+Local development uses `.env.development`.
+Backend tests use `.env.test`.
+Production should use platform-provided environment variables such as Railway service variables.
+
 ```bash
 DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5433/habit_steak?schema=public"
 JWT_SECRET="replace-with-a-long-random-secret"
 PORT=4000
 CLIENT_ORIGIN="http://localhost:5173"
+APP_TIMEZONE="Asia/Ho_Chi_Minh"
 VITE_API_URL="http://localhost:4000/api"
 ```
 
 If you want to apply only the committed migrations against an existing Postgres database, run `npm run db:init`.
 
 `VITE_API_URL` is optional in production when the frontend and API are served from the same Railway service. In that setup, the client falls back to `/api` automatically.
+
+For local development, `npm run dev` loads `.env.development` for the backend and Vite automatically reads the same file for frontend variables.
+
+For backend tests, `npm run test:server` loads `.env.test`.
+
+For production, `npm start` expects real environment variables from the host platform. If you want to smoke-test the production build locally, export those variables in your shell or provide a local `.env` file yourself.
 
 ## API
 
@@ -99,7 +110,7 @@ Each habit can optionally expose a public share link.
 10. Let Railway build the app with `npm run build` and start it with `npm start`.
 11. After the first successful deploy, run `npm run db:init` once in the Railway service shell or as a one-off command to apply the committed Postgres migrations.
 
-The server listens on `process.env.PORT || 4000` and serves the built Vite app from `dist` in production, so the public share route works from the same Railway service.
+The server listens on `process.env.PORT` and serves the built Vite app from `dist` in production, so the public share route works from the same Railway service.
 
 For Railway production, `DATABASE_URL` must point to Postgres. The committed Prisma migrations in this repo are now Postgres migrations.
 

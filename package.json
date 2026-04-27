@@ -5,11 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently \"npm:dev:server\" \"npm:dev:web\"",
-    "dev:server": "NODE_ENV=development tsx watch server/src/index.ts",
+    "dev:server": "DOTENV_CONFIG_PATH=.env.development NODE_ENV=development tsx watch server/src/index.ts",
     "dev:web": "vite --host 0.0.0.0",
     "build": "npm run prisma:generate && tsc --noEmit && vite build && tsc -p tsconfig.server.json",
     "start": "node dist-server/index.js",
-    "test:server": "NODE_ENV=test node --import tsx --test \"server/src/**/*.test.ts\"",
+    "test:server": "DOTENV_CONFIG_PATH=.env.test NODE_ENV=test node --import dotenv/config --import tsx --test \"server/src/**/*.test.ts\"",
     "db:up": "docker compose up -d --force-recreate postgres",
     "db:down": "docker compose down",
     "db:init": "npm run prisma:generate && prisma migrate deploy",
