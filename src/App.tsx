@@ -1,5 +1,9 @@
 import { FormEvent, useEffect, useState, useTransition } from "react";
-import { ApiError, Habit, PublicHabit, User, api } from "./lib/api";
+import { ApiError, Habit, PublicHabit, User, api, StreakRecord } from "./lib/api";
+import ConfirmModal from "./components/ConfirmModal";
+import { HabitCardSkeleton, WeekGridSkeleton } from "./components/Skeletons";
+import { showSuccess, showError } from "./lib/toast";
+import Skeleton from "react-loading-skeleton";
 
 const tokenStorageKey = "habit-steak-token";
 const userStorageKey = "habit-steak-user";
@@ -25,13 +29,24 @@ const formatVietnamDate = (value: string) =>
     timeZone: vietnamTimeZone
   }).format(new Date(value));
 
-function WeekGrid({ days }: { days: Habit["lastSevenDays"] }) {
+function WeekGrid({
+  days,
+  onUnmark
+}: {
+  days: { dateKey: string; completed?: boolean }[];
+  onUnmark?: (dateKey: string) => void;
+}) {
   return (
     <div className="week">
       {days.map((day) => (
         <div className={`day ${day.completed ? "done" : ""}`} key={day.dateKey}>
           <span>{formatVietnamWeekday(day.dateKey)}</span>
           <b>{day.dateKey.slice(8)}</b>
+          {day.completed && onUnmark ? (
+            <button className="small" onClick={() => onUnmark(day.dateKey)}>
+              Unmark
+            </button>
+          ) : null}
         </div>
       ))}
     </div>
@@ -89,7 +104,16 @@ function PublicHabitPage({ shareId }: { shareId: string }) {
 
       <section className="panel public-card">
         {isLoading ? (
-          <div className="empty">Loading shared habit...</div>
+          <>
+            <div className="public-meta">
+              <Skeleton width={220} height={30} />
+              <div style={{ height: 8 }} />
+              <Skeleton width={140} height={16} />
+              <div style={{ height: 8 }} />
+              <Skeleton width={200} height={14} />
+            </div>
+            <WeekGridSkeleton />
+          </>
         ) : habit ? (
           <>
             <div className="public-meta">
@@ -103,6 +127,20 @@ function PublicHabitPage({ shareId }: { shareId: string }) {
           <div className="empty">This share link is unavailable.</div>
         )}
       </section>
+      <ConfirmModal
+        open={confirmOpen}
+        title={confirmTarget?.type === "delete" ? "Delete habit?" : "Unmark streak?"}
+        description={
+          confirmTarget?.type === "delete" ? "This action cannot be undone" : "Remove completion for this day?"
+        }
+        confirmLabel={confirmTarget?.type === "delete" ? "Delete" : "Unmark"}
+        loading={confirmLoading}
+        onCancel={() => {
+          setConfirmOpen(false);
+          setConfirmTarget(null);
+        }}
+        onConfirm={handleConfirmAction}
+      />
     </main>
   );
 }
@@ -120,29 +158,70 @@ function App() {
     return raw ? (JSON.parse(raw) as User) : null;
   });
   const [habits, setHabits] = useState<Habit[]>([]);
+  const [viewRange, setViewRange] = useState<number>(7);
+  const [histories, setHistories] = useState<Record<string, StreakRecord[]>>({});
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [habitName, setHabitName] = useState("");
   const [mode, setMode] = useState<"login" | "register">("login");
   const [message, setMessage] = useState("");
   const [isPending, startTransition] = useTransition();
+  const [isLoadingHabits, setIsLoadingHabits] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmTarget, setConfirmTarget] = useState<{
+    type: "delete" | "unmark";
+    habitId: string;
+    dateKey?: string;
+  } | null>(null);
+  const [confirmLoading, setConfirmLoading] = useState(false);
 
   const authenticated = Boolean(token && user);
 
   const loadHabits = async (authToken = token) => {
     if (!authToken) return;
 
-    const result = await api.habits(authToken);
-    setHabits(result.habits);
+    setIsLoadingHabits(true);
+    try {
+      const result = await api.habits(authToken);
+      setHabits(result.habits);
+    } finally {
+      setIsLoadingHabits(false);
+    }
+  };
+
+  const load30DayHistories = async (authToken = token) => {
+    if (!authToken) return;
+
+    const map: Record<string, StreakRecord[]> = {};
+
+    await Promise.all(
+      habits.map(async (h) => {
+        try {
+          const res = await api.getStreakHistory(h.id, authToken, 30);
+          map[h.id] = res.history;
+        } catch {
+          map[h.id] = [];
+        }
+      })
+    );
+
+    setHistories(map);
   };
 
   useEffect(() => {
     if (!token) return;
-
     loadHabits().catch((error) => {
-      setMessage(error instanceof ApiError ? error.message : "Could not load habits");
+      const msg = error instanceof ApiError ? error.message : "Could not load habits";
+      setMessage(msg);
+      showError(msg);
     });
   }, [token]);
+
+  useEffect(() => {
+    if (viewRange === 30 && token) {
+      load30DayHistories(token).catch(() => {});
+    }
+  }, [viewRange, habits]);
 
   const persistSession = (nextUser: User, nextToken: string) => {
     localStorage.setItem(tokenStorageKey, nextToken);
@@ -177,8 +256,11 @@ function App() {
         await api.createHabit(habitName.trim(), token);
         setHabitName("");
         await loadHabits(token);
+        showSuccess("Habit created");
       } catch (error) {
-        setMessage(error instanceof ApiError ? error.message : "Could not create habit");
+        const msg = error instanceof ApiError ? error.message : "Could not create habit";
+        setMessage(msg);
+        showError(msg);
       }
     });
   };
@@ -191,10 +273,61 @@ function App() {
         setMessage("");
         await api.markDone(habitId, token);
         await loadHabits(token);
+        showSuccess("Streak marked");
       } catch (error) {
-        setMessage(error instanceof ApiError ? error.message : "Could not mark habit");
+        const msg = error instanceof ApiError ? error.message : "Could not mark habit";
+        setMessage(msg);
+        showError(msg);
       }
     });
+  };
+
+  const handleUnmark = (habitId: string, dateKey: string) => {
+    if (!token) return;
+
+    // Open confirm modal for unmarking a streak
+    setConfirmTarget({ type: "unmark", habitId, dateKey });
+    setConfirmOpen(true);
+  };
+
+  const [editingHabitId, setEditingHabitId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState("");
+
+  const startEdit = (habitId: string, currentName: string) => {
+    setEditingHabitId(habitId);
+    setEditingName(currentName);
+  };
+
+  const cancelEdit = () => {
+    setEditingHabitId(null);
+    setEditingName("");
+  };
+
+  const saveEdit = (habitId: string) => {
+    if (!token) return;
+    const name = editingName.trim();
+    if (!name) {
+      setMessage("Habit name is required");
+      return;
+    }
+
+    startTransition(async () => {
+      try {
+        setMessage("");
+        await api.updateHabit(habitId, name, token);
+        cancelEdit();
+        await loadHabits(token);
+      } catch (error) {
+        setMessage(error instanceof ApiError ? error.message : "Could not update habit");
+      }
+    });
+  };
+
+  const handleDeleteHabit = (habitId: string) => {
+    if (!token) return;
+
+    setConfirmTarget({ type: "delete", habitId });
+    setConfirmOpen(true);
   };
 
   const handleShareToggle = (habitId: string, isPublic: boolean) => {
@@ -205,8 +338,11 @@ function App() {
         setMessage("");
         await api.setHabitSharing(habitId, isPublic, token);
         await loadHabits(token);
+        showSuccess(isPublic ? "Share enabled" : "Share disabled");
       } catch (error) {
-        setMessage(error instanceof ApiError ? error.message : "Could not update sharing");
+        const msg = error instanceof ApiError ? error.message : "Could not update sharing";
+        setMessage(msg);
+        showError(msg);
       }
     });
   };
@@ -217,6 +353,33 @@ function App() {
     setToken(null);
     setUser(null);
     setHabits([]);
+  };
+
+  const handleConfirmAction = async () => {
+    if (!confirmTarget || !token) return;
+    setConfirmLoading(true);
+    try {
+      if (confirmTarget.type === "delete") {
+        await api.deleteHabit(confirmTarget.habitId, token);
+        showSuccess("Habit deleted");
+        await loadHabits(token);
+        if (viewRange === 30) await load30DayHistories(token);
+      } else {
+        // unmark
+        await api.unmarkStreak(confirmTarget.habitId, confirmTarget.dateKey!, token);
+        showSuccess("Streak unmarked");
+        await loadHabits(token);
+        if (viewRange === 30) await load30DayHistories(token);
+      }
+      setConfirmOpen(false);
+      setConfirmTarget(null);
+    } catch (error) {
+      const msg = error instanceof ApiError ? error.message : "Action failed";
+      setMessage(msg);
+      showError(msg);
+    } finally {
+      setConfirmLoading(false);
+    }
   };
 
   return (
@@ -282,37 +445,96 @@ function App() {
           </form>
 
           <div className="habit-grid">
-            {habits.length === 0 ? (
+            {isLoadingHabits ? (
+              <>
+                <HabitCardSkeleton />
+                <HabitCardSkeleton />
+              </>
+            ) : habits.length === 0 ? (
               <div className="empty">No habits yet. Add one habit to start a streak.</div>
             ) : (
-              habits.map((habit) => (
-                <article className="habit-card" key={habit.id}>
-                  <div className="habit-header">
-                    <div>
-                      <h2>{habit.name}</h2>
-                      <p>{habit.currentStreak} day current streak</p>
+              <>
+                <div className="controls">
+                  <span>View:</span>
+                  <button className={viewRange === 7 ? "active" : ""} onClick={() => setViewRange(7)}>
+                    7 days
+                  </button>
+                  <button className={viewRange === 30 ? "active" : ""} onClick={() => setViewRange(30)}>
+                    30 days
+                  </button>
+                </div>
+                {habits.map((habit) => (
+                  <article className="habit-card" key={habit.id}>
+                    <div className="habit-header">
+                      <div>
+                        {editingHabitId === habit.id ? (
+                          <div>
+                            <input value={editingName} onChange={(e) => setEditingName(e.target.value)} maxLength={80} />
+                            <div>
+                              <button onClick={() => saveEdit(habit.id)}>Save</button>
+                              <button className="link" onClick={cancelEdit}>
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <h2>{habit.name}</h2>
+                            <p>{habit.currentStreak} day current streak</p>
+                          </>
+                        )}
+                      </div>
+                      <div>
+                        <button onClick={() => handleMarkDone(habit.id)} disabled={isPending}>
+                          Mark done
+                        </button>
+                        <button className="ghost" onClick={() => startEdit(habit.id, habit.name)}>
+                          Edit
+                        </button>
+                        <button className="ghost danger" onClick={() => handleDeleteHabit(habit.id)}>
+                          Delete
+                        </button>
+                      </div>
                     </div>
-                    <button onClick={() => handleMarkDone(habit.id)} disabled={isPending}>
-                      Mark done
-                    </button>
-                  </div>
-                  <WeekGrid days={habit.lastSevenDays} />
-                  <div className="share-row">
-                    <div>
-                      <strong>Public share</strong>
-                      <p>{habit.isPublic ? "Read-only link is live." : "Disabled until you enable sharing."}</p>
+                    {viewRange === 7 ? (
+                      <WeekGrid days={habit.lastSevenDays} onUnmark={(date) => handleUnmark(habit.id, date)} />
+                    ) : (
+                      <WeekGrid days={histories[habit.id] ?? []} onUnmark={(date) => handleUnmark(habit.id, date)} />
+                    )}
+                    <div className="share-row">
+                      <div>
+                        <strong>Public share</strong>
+                        <p>{habit.isPublic ? "Read-only link is live." : "Disabled until you enable sharing."}</p>
+                      </div>
+                      <button className="ghost" onClick={() => handleShareToggle(habit.id, !habit.isPublic)} disabled={isPending}>
+                        {habit.isPublic ? "Disable share" : "Enable share"}
+                      </button>
                     </div>
-                    <button className="ghost" onClick={() => handleShareToggle(habit.id, !habit.isPublic)} disabled={isPending}>
-                      {habit.isPublic ? "Disable share" : "Enable share"}
-                    </button>
-                  </div>
-                  {habit.isPublic && habit.shareId ? (
-                    <a className="share-link" href={getShareLink(habit.shareId)} target="_blank" rel="noreferrer">
-                      {getShareLink(habit.shareId)}
-                    </a>
-                  ) : null}
-                </article>
-              ))
+                    {habit.isPublic && habit.shareId ? (
+                      <>
+                        <a className="share-link" href={getShareLink(habit.shareId)} target="_blank" rel="noreferrer">
+                          {getShareLink(habit.shareId)}
+                        </a>
+                        <div style={{ marginTop: 8 }}>
+                          <button
+                            className="ghost"
+                            onClick={async () => {
+                              try {
+                                await navigator.clipboard.writeText(getShareLink(habit.shareId!));
+                                showSuccess("Share link copied");
+                              } catch {
+                                showError("Could not copy link");
+                              }
+                            }}
+                          >
+                            Copy
+                          </button>
+                        </div>
+                      </>
+                    ) : null}
+                  </article>
+                ))}
+              </>
             )}
           </div>
         </section>

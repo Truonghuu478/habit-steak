@@ -27,6 +27,8 @@ export type PublicHabit = {
   lastSevenDays: HabitDay[];
 };
 
+export type StreakRecord = { id?: string; dateKey: string; completed?: boolean };
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -77,9 +79,22 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify({ isPublic })
     }, token),
+  updateHabit: (habitId: string, name: string, token: string) =>
+    request<{ habit: Habit }>(`/habits/${habitId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ name })
+    }, token),
+  deleteHabit: (habitId: string, token: string) =>
+    request<void>(`/habits/${habitId}`, { method: "DELETE" }, token),
   markDone: (habitId: string, token: string) =>
     request<{ streak: { id: string; dateKey: string } }>(`/streaks/${habitId}`, {
       method: "POST"
     }, token),
+  unmarkStreak: (habitId: string, dateKey: string, token: string) =>
+    request<{ habitId: string; deleted: { id: string; dateKey: string }; currentStreak: number }>(`/streaks/${habitId}?date=${dateKey}`, {
+      method: "DELETE"
+    }, token),
+  getStreakHistory: (habitId: string, token?: string, range?: number) =>
+    request<{ habitId: string; currentStreak: number; history: StreakRecord[] }>(`/streaks/${habitId}${range ? `?range=${range}` : ""}`, {}, token),
   publicHabit: (shareId: string) => request<{ habit: PublicHabit }>(`/public/habits/${shareId}`)
 };
