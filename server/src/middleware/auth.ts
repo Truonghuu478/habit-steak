@@ -1,6 +1,6 @@
 import type { Request, RequestHandler } from "express";
 import jwt from "jsonwebtoken";
-import { jwtSecret } from "../config/env.js";
+import { JWT_SECRET } from "../config/env.js";
 
 export type AuthUser = {
   id: string;
@@ -11,7 +11,7 @@ export type AuthRequest = Request & {
   user?: AuthUser;
 };
 
-export const signToken = (user: AuthUser) => jwt.sign(user, jwtSecret, { expiresIn: "7d" });
+export const signToken = (user: AuthUser) => jwt.sign(user, JWT_SECRET, { expiresIn: "7d" });
 
 export const requireAuth: RequestHandler = (req, res, next) => {
   const authRequest = req as AuthRequest;
@@ -24,7 +24,7 @@ export const requireAuth: RequestHandler = (req, res, next) => {
   }
 
   try {
-    const payload = jwt.verify(token, jwtSecret);
+    const payload = jwt.verify(token, JWT_SECRET);
 
     if (
       typeof payload !== "object" ||

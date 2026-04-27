@@ -3,7 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import cors, { type CorsOptions } from "cors";
 import express from "express";
-import { clientOrigin } from "./config/env.js";
+import { CLIENT_ORIGIN } from "./config/env.js";
 import { authRoutes } from "./routes/authRoutes.js";
 import { habitRoutes } from "./routes/habitRoutes.js";
 import { publicRoutes } from "./routes/publicRoutes.js";
@@ -39,7 +39,7 @@ const createApp = (options: CreateAppOptions = {}) => {
 
   app.use(
     cors({
-      origin: resolveCorsOrigin(options.clientOrigin ?? clientOrigin)
+      origin: resolveCorsOrigin(options.clientOrigin ?? CLIENT_ORIGIN)
     })
   );
   app.use(express.json());

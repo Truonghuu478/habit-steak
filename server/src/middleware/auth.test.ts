@@ -9,7 +9,7 @@ type MockResponse = Response & {
 
 const createMockResponse = () => {
   const response = {
-    body: undefined,
+    body: undefined as unknown,
     status(code: number) {
       this.statusCode = code;
       return this;
@@ -26,12 +26,13 @@ const createMockResponse = () => {
 
 test("requireAuth returns 401 when the bearer token is missing", async () => {
   process.env.JWT_SECRET = process.env.JWT_SECRET ?? "test-jwt-secret";
+  process.env.PORT = process.env.PORT ?? "4000";
   const mod = await import("./auth.js");
   const { requireAuth } = mod;
 
   const req = {
     header: () => undefined
-  } as Request;
+  } as unknown as Request;
   const res = createMockResponse();
   let nextCalled = false;
 
@@ -46,12 +47,13 @@ test("requireAuth returns 401 when the bearer token is missing", async () => {
 
 test("requireAuth returns 401 when the bearer token is invalid", async () => {
   process.env.JWT_SECRET = process.env.JWT_SECRET ?? "test-jwt-secret";
+  process.env.PORT = process.env.PORT ?? "4000";
   const mod = await import("./auth.js");
   const { requireAuth } = mod;
 
   const req = {
     header: () => "Bearer invalid-token"
-  } as Request;
+  } as unknown as Request;
   const res = createMockResponse();
   let nextCalled = false;
 

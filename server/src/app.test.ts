@@ -5,6 +5,7 @@ import test from "node:test";
 const startServer = async (clientOrigin = "http://localhost:5173") => {
   process.env.JWT_SECRET = process.env.JWT_SECRET ?? "test-jwt-secret";
   process.env.CLIENT_ORIGIN = process.env.CLIENT_ORIGIN ?? clientOrigin;
+  process.env.PORT = process.env.PORT ?? "4000";
 
   const mod = await import("./app.js");
   const { createApp } = mod;

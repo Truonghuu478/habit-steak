@@ -1,7 +1,7 @@
 import dayjs from "dayjs";
 import timezone from "dayjs/plugin/timezone.js";
 import utc from "dayjs/plugin/utc.js";
-import { appTimezone } from "../config/env.js";
+import { APP_TIMEZONE } from "../config/env.js";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -25,19 +25,19 @@ type PublicHabitInput = {
   streaks: HabitStreakRecord[];
 };
 
-export const getDateKey = (value = dayjs()) => value.tz(appTimezone).format("YYYY-MM-DD");
+export const getDateKey = (value = dayjs()) => value.tz(APP_TIMEZONE).format("YYYY-MM-DD");
 
 export const getTodayKey = () => getDateKey();
 
 export const getLastSevenDateKeys = () => {
-  const today = dayjs().tz(appTimezone);
+  const today = dayjs().tz(APP_TIMEZONE);
 
   return Array.from({ length: 7 }, (_value, index) => getDateKey(today.subtract(6 - index, "day")));
 };
 
 export const calculateCurrentStreak = (dateKeys: string[]) => {
   const completed = new Set(dateKeys);
-  let cursor = dayjs().tz(appTimezone).startOf("day");
+  let cursor = dayjs().tz(APP_TIMEZONE).startOf("day");
   let count = 0;
 
   while (completed.has(cursor.format("YYYY-MM-DD"))) {

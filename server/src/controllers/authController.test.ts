@@ -9,7 +9,7 @@ type MockResponse = Response & {
 
 const createMockResponse = () => {
   const response = {
-    body: undefined,
+    body: undefined as unknown,
     status(code: number) {
       this.statusCode = code;
       return this;
@@ -26,6 +26,7 @@ const createMockResponse = () => {
 
 test("register returns 400 for invalid registration data", async () => {
   process.env.JWT_SECRET = process.env.JWT_SECRET ?? "test-jwt-secret";
+  process.env.PORT = process.env.PORT ?? "4000";
   const mod = await import("./authController.js");
   const { register } = mod;
   const req = {
@@ -33,7 +34,7 @@ test("register returns 400 for invalid registration data", async () => {
       email: "not-an-email",
       password: "short"
     }
-  } as Request;
+  } as unknown as Request;
   const res = createMockResponse();
 
   await register(req, res, () => undefined);
@@ -44,6 +45,7 @@ test("register returns 400 for invalid registration data", async () => {
 
 test("login returns 400 for invalid login data", async () => {
   process.env.JWT_SECRET = process.env.JWT_SECRET ?? "test-jwt-secret";
+  process.env.PORT = process.env.PORT ?? "4000";
   const mod = await import("./authController.js");
   const { login } = mod;
   const req = {
@@ -51,7 +53,7 @@ test("login returns 400 for invalid login data", async () => {
       email: "still-not-an-email",
       password: "short"
     }
-  } as Request;
+  } as unknown as Request;
   const res = createMockResponse();
 
   await login(req, res, () => undefined);

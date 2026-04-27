@@ -8,8 +8,18 @@ const getRequiredEnv = (name: string) => {
   return value;
 };
 
-export const databaseUrl = process.env.DATABASE_URL;
-export const jwtSecret = getRequiredEnv("JWT_SECRET");
-export const port = Number(process.env.PORT ?? 4000);
-export const clientOrigin = process.env.CLIENT_ORIGIN;
-export const appTimezone = process.env.APP_TIMEZONE ?? "Asia/Ho_Chi_Minh";
+const getRequiredNumberEnv = (name: string) => {
+  const value = Number(getRequiredEnv(name));
+
+  if (!Number.isFinite(value)) {
+    throw new Error(`${name} must be a valid number`);
+  }
+
+  return value;
+};
+
+export const DATABASE_URL = process.env.DATABASE_URL;
+export const JWT_SECRET = getRequiredEnv("JWT_SECRET");
+export const PORT = getRequiredNumberEnv("PORT");
+export const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN;
+export const APP_TIMEZONE = process.env.APP_TIMEZONE ?? "Asia/Ho_Chi_Minh";
