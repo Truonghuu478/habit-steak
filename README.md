@@ -10,6 +10,12 @@ Full-stack TypeScript MVP for habit streak tracking.
 - Sharing: enable a read-only public link for a habit without exposing user account data.
 - Frontend: React forms, token persistence, loading/error states, responsive habit dashboard.
 
+## AI Context
+
+The repository keeps AI-readable project context in `AGENTS.md`, `.github/copilot-instructions.md`, and `docs/project-context.md`.
+
+When a feature, API contract, environment model, or business rule changes, update the affected documentation files in the same task so future agents read current information.
+
 ## Setup
 
 ```bash
