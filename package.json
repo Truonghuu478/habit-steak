@@ -1,0 +1,43 @@
+{
+  "name": "habit-steak",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently \"npm:dev:server\" \"npm:dev:web\"",
+    "dev:server": "tsx watch server/src/index.ts",
+    "dev:web": "vite --host 0.0.0.0",
+    "build": "tsc --noEmit && vite build && tsc -p tsconfig.server.json",
+    "start": "node dist-server/index.js",
+    "db:init": "sqlite3 prisma/dev.db < prisma/migrations/20260427000000_init/migration.sql && npm run prisma:generate",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:studio": "prisma studio"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.5",
+    "dayjs": "^1.11.20",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.5",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^24.9.2",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "@vitejs/plugin-react": "^5.1.0",
+    "concurrently": "^9.2.1",
+    "prisma": "^5.22.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.12"
+  }
+}

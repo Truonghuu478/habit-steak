@@ -1,0 +1,40 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  habits       Habit[]
+}
+
+model Habit {
+  id        String   @id @default(cuid())
+  name      String
+  userId    String
+  shareId   String?  @unique
+  isPublic  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  streaks   Streak[]
+
+  @@index([userId])
+}
+
+model Streak {
+  id        String   @id @default(cuid())
+  habitId   String
+  dateKey   String
+  createdAt DateTime @default(now())
+  habit     Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+
+  @@unique([habitId, dateKey])
+  @@index([habitId])
+}

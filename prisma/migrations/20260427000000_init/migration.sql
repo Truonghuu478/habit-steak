@@ -1,0 +1,31 @@
+PRAGMA foreign_keys=ON;
+
+CREATE TABLE IF NOT EXISTS "User" (
+  "id" TEXT NOT NULL PRIMARY KEY,
+  "email" TEXT NOT NULL,
+  "passwordHash" TEXT NOT NULL,
+  "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "User_email_key" ON "User"("email");
+
+CREATE TABLE IF NOT EXISTS "Habit" (
+  "id" TEXT NOT NULL PRIMARY KEY,
+  "name" TEXT NOT NULL,
+  "userId" TEXT NOT NULL,
+  "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "Habit_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS "Habit_userId_idx" ON "Habit"("userId");
+
+CREATE TABLE IF NOT EXISTS "Streak" (
+  "id" TEXT NOT NULL PRIMARY KEY,
+  "habitId" TEXT NOT NULL,
+  "dateKey" TEXT NOT NULL,
+  "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "Streak_habitId_fkey" FOREIGN KEY ("habitId") REFERENCES "Habit"("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "Streak_habitId_dateKey_key" ON "Streak"("habitId", "dateKey");
+CREATE INDEX IF NOT EXISTS "Streak_habitId_idx" ON "Streak"("habitId");
