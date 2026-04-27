@@ -62,7 +62,7 @@ test("updateHabit updates name and validates input", async () => {
   const req = { params: { habitId: mockHabit.id }, body: { name: "  New Name  " }, user: { id: "user-1" } } as any;
   const res = createMockResponse();
 
-  await updateHabit(req, res as any);
+  await updateHabit(req, res as any, () => {});
 
   assert.equal(res.statusCode, 200);
   // body should contain updated habit with trimmed name
@@ -73,7 +73,7 @@ test("updateHabit updates name and validates input", async () => {
   const badReq = { params: { habitId: mockHabit.id }, body: { name: "   " }, user: { id: "user-1" } } as any;
   const badRes = createMockResponse();
 
-  await updateHabit(badReq, badRes as any);
+  await updateHabit(badReq, badRes as any, () => {});
   assert.equal(badRes.statusCode, 400);
 
   // restore
@@ -106,7 +106,7 @@ test("deleteHabit removes habit when owned and returns 204", async () => {
   const req = { params: { habitId: mockHabit.id }, user: { id: "user-1" } } as any;
   const res = createMockResponse();
 
-  await deleteHabit(req, res as any);
+  await deleteHabit(req, res as any, () => {});
 
   assert.equal(res.statusCode, 204);
 
@@ -114,7 +114,7 @@ test("deleteHabit removes habit when owned and returns 204", async () => {
   // @ts-ignore
   prismaMod.prisma.habit.findFirst = async () => null;
   const notFoundRes = createMockResponse();
-  await deleteHabit(req, notFoundRes as any);
+  await deleteHabit(req, notFoundRes as any, () => {});
   assert.equal(notFoundRes.statusCode, 404);
 
   prismaMod.prisma.habit.findFirst = originalFindFirst;
@@ -162,7 +162,7 @@ test("unmarkStreak validates date and deletes streak, recalculates current strea
   const req = { params: { habitId: mockHabit.id }, query: { date: today }, user: { id: "user-1" } } as any;
   const res = createMockResponse();
 
-  await unmarkStreak(req, res as any);
+  await unmarkStreak(req, res as any, () => {});
 
   assert.equal(res.statusCode, 200);
   // @ts-ignore
@@ -173,7 +173,7 @@ test("unmarkStreak validates date and deletes streak, recalculates current strea
   // invalid date format
   const badReq = { params: { habitId: mockHabit.id }, query: { date: "not-a-date" }, user: { id: "user-1" } } as any;
   const badRes = createMockResponse();
-  await unmarkStreak(badReq, badRes as any);
+  await unmarkStreak(badReq, badRes as any, () => {});
   assert.equal(badRes.statusCode, 400);
 
   prismaMod.prisma.habit.findFirst = originalHabitFind;
@@ -212,7 +212,7 @@ test("getStreakHistory returns last N days when range provided", async () => {
   const req = { params: { habitId: mockHabit.id }, query: { range: "30" }, user: { id: "user-1" } } as any;
   const res = createMockResponse();
 
-  await getStreakHistory(req, res as any);
+  await getStreakHistory(req, res as any, () => {});
 
   assert.equal(res.statusCode, 200);
   // @ts-ignore
@@ -228,7 +228,7 @@ test("getStreakHistory returns last N days when range provided", async () => {
   // invalid range
   const badReq = { params: { habitId: mockHabit.id }, query: { range: "0" }, user: { id: "user-1" } } as any;
   const badRes = createMockResponse();
-  await getStreakHistory(badReq, badRes as any);
+  await getStreakHistory(badReq, badRes as any, () => {});
   assert.equal(badRes.statusCode, 400);
 
   prismaMod.prisma.habit.findFirst = originalHabitFind;

@@ -127,20 +127,6 @@ function PublicHabitPage({ shareId }: { shareId: string }) {
           <div className="empty">This share link is unavailable.</div>
         )}
       </section>
-      <ConfirmModal
-        open={confirmOpen}
-        title={confirmTarget?.type === "delete" ? "Delete habit?" : "Unmark streak?"}
-        description={
-          confirmTarget?.type === "delete" ? "This action cannot be undone" : "Remove completion for this day?"
-        }
-        confirmLabel={confirmTarget?.type === "delete" ? "Delete" : "Unmark"}
-        loading={confirmLoading}
-        onCancel={() => {
-          setConfirmOpen(false);
-          setConfirmTarget(null);
-        }}
-        onConfirm={handleConfirmAction}
-      />
     </main>
   );
 }

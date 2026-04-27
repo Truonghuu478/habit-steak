@@ -273,3 +273,21 @@ h1 {
     width: 100%;
   }
 }
+
+/* Mobile: hide large hero heading and lede to surface essential controls */
+@media (max-width: 520px) {
+  .hero h1,
+  .hero .lede {
+    display: none;
+  }
+
+  .hero {
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .hero .eyebrow {
+    font-size: 0.85rem;
+    letter-spacing: 0.12em;
+  }
+}
