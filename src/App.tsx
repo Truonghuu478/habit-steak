@@ -107,9 +107,9 @@ function PublicHabitPage({ shareId }: { shareId: string }) {
           <>
             <div className="public-meta">
               <Skeleton width={220} height={30} />
-              <div style={{ height: 8 }} />
+              <div className="h-2" />
               <Skeleton width={140} height={16} />
-              <div style={{ height: 8 }} />
+              <div className="h-2" />
               <Skeleton width={200} height={14} />
             </div>
             <WeekGridSkeleton />
@@ -501,7 +501,7 @@ function App() {
                         <a className="share-link" href={getShareLink(habit.shareId)} target="_blank" rel="noreferrer">
                           {getShareLink(habit.shareId)}
                         </a>
-                        <div style={{ marginTop: 8 }}>
+                        <div className="mt-2">
                           <button
                             className="ghost"
                             onClick={async () => {
@@ -525,6 +525,22 @@ function App() {
           </div>
         </section>
       )}
+      <ConfirmModal
+        open={confirmOpen}
+        title={confirmTarget?.type === "delete" ? "Delete habit?" : "Unmark streak?"}
+        description={
+          confirmTarget?.type === "delete"
+            ? "This will permanently delete the habit and its history."
+            : `Unmark streak on ${confirmTarget?.dateKey}? This cannot be undone.`
+        }
+        confirmLabel={confirmTarget?.type === "delete" ? "Delete" : "Unmark"}
+        onCancel={() => {
+          setConfirmOpen(false);
+          setConfirmTarget(null);
+        }}
+        onConfirm={handleConfirmAction}
+        loading={confirmLoading}
+      />
     </main>
   );
 }

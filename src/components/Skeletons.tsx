@@ -7,10 +7,10 @@ export function HabitCardSkeleton() {
       <div className="habit-header">
         <div>
           <Skeleton width="60%" height={28} />
-          <div style={{ height: 8 }} />
+          <div className="h-2" />
           <Skeleton width="45%" height={14} />
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div className="flex gap-2">
           <Skeleton width={90} height={36} />
           <Skeleton width={70} height={36} />
         </div>
@@ -25,9 +25,9 @@ export function HabitCardSkeleton() {
       </div>
 
       <div className="share-row">
-        <div style={{ flex: 1 }}>
+        <div className="flex-1">
           <Skeleton width={120} height={18} />
-          <div style={{ height: 8 }} />
+          <div className="h-2" />
           <Skeleton width={200} height={20} />
         </div>
         <Skeleton width={90} height={36} />

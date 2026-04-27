@@ -56,7 +56,7 @@ export default function ConfirmModal({
 
   return createPortal(
     <div
-      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "grid", placeItems: "center", zIndex: 9999 }}
+      className="fixed inset-0 bg-black/45 grid place-items-center z-[9999]"
       onMouseDown={onCancel}
     >
       <div
@@ -65,19 +65,18 @@ export default function ConfirmModal({
         aria-modal="true"
         aria-labelledby="confirm-title"
         onMouseDown={(e) => e.stopPropagation()}
-        className="panel"
-        style={{ width: "min(680px, 92%)", padding: "1.25rem" }}
+        className="panel w-[min(680px,92%)] p-5"
       >
         <h2 id="confirm-title">{title}</h2>
         {description ? <p>{description}</p> : null}
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.75rem", marginTop: "1rem" }}>
+        <div className="flex justify-end gap-3 mt-4">
           <button className="ghost" onClick={onCancel} disabled={loading}>
             Cancel
           </button>
           <button
             onClick={() => onConfirm()}
             disabled={loading}
-            style={{ background: "#b04a2c", color: "#fff8e8", borderRadius: 12, padding: "0.6rem 1rem", fontWeight: 800 }}
+            className="bg-brick text-cream rounded-xl py-[0.6rem] px-4 font-extrabold border-0"
           >
             {loading ? "Working..." : confirmLabel}
           </button>
