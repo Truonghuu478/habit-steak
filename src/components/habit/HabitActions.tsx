@@ -1,6 +1,10 @@
 import type { Habit } from "../../lib/api";
 import { getShareLink } from "../../lib/format";
 import { showSuccess, showError } from "../../lib/toast";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Paper from "@mui/material/Paper";
+import Typography from "@mui/material/Typography";
 
 type Props = {
   habit: Habit;
@@ -20,63 +24,75 @@ export default function HabitActions({
   onShareToggle
 }: Props) {
   return (
-    <>
+    <Box className="flex flex-col items-end gap-3 shrink-0">
       {/* Action buttons */}
-      <div>
-        <button onClick={() => onMarkDone(habit.id)} disabled={isPending}>
+      <Box className="flex flex-wrap gap-2 justify-end">
+        <Button variant="contained" onClick={() => onMarkDone(habit.id)} disabled={isPending}>
           Mark done
-        </button>
-        <button className="ghost" onClick={() => onEdit(habit.id, habit.name)}>
+        </Button>
+        <Button variant="outlined" onClick={() => onEdit(habit.id, habit.name)}>
           Edit
-        </button>
-        <button className="ghost danger" onClick={() => onDelete(habit.id)}>
+        </Button>
+        <Button variant="outlined" color="error" onClick={() => onDelete(habit.id)}>
           Delete
-        </button>
-      </div>
+        </Button>
+      </Box>
 
       {/* Share row */}
-      <div className="share-row">
+      <Box className="flex items-start justify-between gap-4 w-full mt-2">
         <div>
-          <strong>Public share</strong>
-          <p>{habit.isPublic ? "Read-only link is live." : "Disabled until you enable sharing."}</p>
+          <Typography className="font-extrabold mb-1">Public share</Typography>
+          <Typography variant="body2" className="text-sm">
+            {habit.isPublic ? "Read-only link is live." : "Disabled until you enable sharing."}
+          </Typography>
         </div>
-        <button
-          className="ghost"
+        <Button
+          variant="outlined"
+          size="small"
           onClick={() => onShareToggle(habit.id, !habit.isPublic)}
           disabled={isPending}
         >
           {habit.isPublic ? "Disable share" : "Enable share"}
-        </button>
-      </div>
+        </Button>
+      </Box>
 
       {/* Share link */}
       {habit.isPublic && habit.shareId ? (
-        <>
-          <a
-            className="share-link"
+        <Box className="w-full">
+          <Paper
+            variant="outlined"
+            component="a"
             href={getShareLink(habit.shareId)}
             target="_blank"
             rel="noreferrer"
+            className="block py-3 px-4 no-underline break-all font-extrabold"
+            sx={{
+              borderRadius: "1rem",
+              borderWidth: 2,
+              borderColor: "primary.light",
+              boxShadow: "none",
+              bgcolor: "background.paper"
+            }}
           >
             {getShareLink(habit.shareId)}
-          </a>
-          <div className="mt-2">
-            <button
-              className="ghost"
-              onClick={async () => {
-                try {
-                  await navigator.clipboard.writeText(getShareLink(habit.shareId!));
-                  showSuccess("Share link copied");
-                } catch {
-                  showError("Could not copy link");
-                }
-              }}
-            >
-              Copy
-            </button>
-          </div>
-        </>
+          </Paper>
+          <Button
+            variant="outlined"
+            size="small"
+            className="mt-2"
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(getShareLink(habit.shareId!));
+                showSuccess("Share link copied");
+              } catch {
+                showError("Could not copy link");
+              }
+            }}
+          >
+            Copy
+          </Button>
+        </Box>
       ) : null}
-    </>
+    </Box>
   );
 }

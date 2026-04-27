@@ -1,49 +1,48 @@
-import Skeleton from "react-loading-skeleton";
+import Card from "@mui/material/Card";
+import CardContent from "@mui/material/CardContent";
+import Skeleton from "@mui/material/Skeleton";
+import Box from "@mui/material/Box";
 
 export function HabitCardSkeleton() {
   return (
-    <article className="habit-card">
-      <div className="habit-header">
-        <div>
-          <Skeleton width="60%" height={28} />
-          <div className="h-2" />
-          <Skeleton width="45%" height={14} />
-        </div>
-        <div className="flex gap-2">
-          <Skeleton width={90} height={36} />
-          <Skeleton width={70} height={36} />
-        </div>
-      </div>
-
-      <div className="week">
-        {Array.from({ length: 7 }).map((_, i) => (
-          <div className="day" key={i}>
-            <Skeleton height={60} />
+    <Card>
+      <CardContent>
+        <Box className="flex items-start justify-between gap-4 mb-5">
+          <div>
+            <Skeleton variant="text" width="60%" height={32} />
+            <Skeleton variant="text" width="45%" height={18} />
           </div>
-        ))}
-      </div>
+          <Box className="flex gap-2">
+            <Skeleton variant="rounded" width={90} height={36} sx={{ borderRadius: "9999px" }} />
+            <Skeleton variant="rounded" width={70} height={36} sx={{ borderRadius: "9999px" }} />
+          </Box>
+        </Box>
 
-      <div className="share-row">
-        <div className="flex-1">
-          <Skeleton width={120} height={18} />
-          <div className="h-2" />
-          <Skeleton width={200} height={20} />
-        </div>
-        <Skeleton width={90} height={36} />
-      </div>
-    </article>
+        <Box className="grid grid-cols-7 gap-1">
+          {Array.from({ length: 7 }).map((_, i) => (
+            <Skeleton key={i} variant="rounded" height={68} sx={{ borderRadius: "1rem" }} />
+          ))}
+        </Box>
+
+        <Box className="flex items-start justify-between gap-4 mt-5">
+          <div className="flex-1">
+            <Skeleton variant="text" width={120} height={20} />
+            <Skeleton variant="text" width={200} height={18} />
+          </div>
+          <Skeleton variant="rounded" width={90} height={36} sx={{ borderRadius: "9999px" }} />
+        </Box>
+      </CardContent>
+    </Card>
   );
 }
 
 export function WeekGridSkeleton() {
   return (
-    <div className="week">
+    <Box className="grid grid-cols-7 gap-1">
       {Array.from({ length: 7 }).map((_, i) => (
-        <div className="day" key={i}>
-          <Skeleton height={60} />
-        </div>
+        <Skeleton key={i} variant="rounded" height={68} sx={{ borderRadius: "1rem" }} />
       ))}
-    </div>
+    </Box>
   );
 }
 

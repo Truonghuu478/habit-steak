@@ -5,6 +5,8 @@ import AuthForm from "../auth/AuthForm";
 import CreateHabitForm from "../habit/CreateHabitForm";
 import HabitList from "../habit/HabitList";
 import ConfirmModal from "../ui/ConfirmModal";
+import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
 
 type Props = {
   token: string | null;
@@ -170,9 +172,13 @@ export default function Body({ token, user, onAuthenticated }: Props) {
 
   return (
     <>
-      {message ? <div className="notice">{message}</div> : null}
+      {message ? (
+        <Alert severity="warning" className="mb-6">
+          {message}
+        </Alert>
+      ) : null}
 
-      <section className="dashboard">
+      <Box className="grid gap-8">
         <CreateHabitForm token={token!} onCreated={() => loadHabits(token)} />
         <HabitList
           habits={habits}
@@ -187,7 +193,7 @@ export default function Body({ token, user, onAuthenticated }: Props) {
           onShareToggle={handleShareToggle}
           onSaveEdit={handleSaveEdit}
         />
-      </section>
+      </Box>
 
       <ConfirmModal
         open={confirmOpen}

@@ -3,7 +3,13 @@ import { ApiError, type PublicHabit, api } from "../../lib/api";
 import { formatVietnamDate } from "../../lib/format";
 import WeekGrid from "../streak/WeekGrid";
 import { WeekGridSkeleton } from "../ui/Skeletons";
-import Skeleton from "react-loading-skeleton";
+import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Container from "@mui/material/Container";
+import Paper from "@mui/material/Paper";
+import Skeleton from "@mui/material/Skeleton";
+import Typography from "@mui/material/Typography";
 
 type Props = {
   shareId: string;
@@ -44,45 +50,57 @@ export default function PublicHabitPage({ shareId }: Props) {
   }, [shareId]);
 
   return (
-    <main className="shell public-shell">
-      <section className="hero">
+    <Container maxWidth="lg" className="py-12">
+      <Box className="flex items-start justify-between gap-8 mb-8 max-md:flex-col">
         <div>
-          <p className="eyebrow">Shared Habit</p>
-          <h1>Read-only streak snapshot for one habit.</h1>
-          <p className="lede">This public page exposes only the habit name, current streak, and the last seven days.</p>
+          <Typography variant="overline" component="p" className="mb-3">
+            Shared Habit
+          </Typography>
+          <Typography variant="h1" component="h1" className="max-w-[720px] mb-4 max-sm:hidden">
+            Read-only streak snapshot for one habit.
+          </Typography>
+          <Typography variant="body2" className="max-w-[620px] max-sm:hidden">
+            This public page exposes only the habit name, current streak, and the last seven days.
+          </Typography>
         </div>
-        <a className="button-link ghost" href="/">
+        <Button variant="outlined" href="/">
           Open app
-        </a>
-      </section>
+        </Button>
+      </Box>
 
-      {message ? <div className="notice">{message}</div> : null}
+      {message ? (
+        <Alert severity="warning" className="mb-6">
+          {message}
+        </Alert>
+      ) : null}
 
-      <section className="panel public-card">
-        {isLoading ? (
-          <>
-            <div className="public-meta">
-              <Skeleton width={220} height={30} />
-              <div className="h-2" />
-              <Skeleton width={140} height={16} />
-              <div className="h-2" />
-              <Skeleton width={200} height={14} />
-            </div>
-            <WeekGridSkeleton />
-          </>
-        ) : habit ? (
-          <>
-            <div className="public-meta">
-              <h2>{habit.name}</h2>
-              <p>{habit.currentStreak} day current streak</p>
-              <p>Tracking since {formatVietnamDate(habit.createdAt)}</p>
-            </div>
-            <WeekGrid days={habit.lastSevenDays} />
-          </>
-        ) : (
-          <div className="empty">This share link is unavailable.</div>
-        )}
-      </section>
-    </main>
+      <Paper className="p-6">
+        <Box className="grid gap-5">
+          {isLoading ? (
+            <>
+              <div className="grid gap-1">
+                <Skeleton variant="text" width={220} height={36} />
+                <Skeleton variant="text" width={140} height={20} />
+                <Skeleton variant="text" width={200} height={18} />
+              </div>
+              <WeekGridSkeleton />
+            </>
+          ) : habit ? (
+            <>
+              <div className="grid gap-1">
+                <Typography variant="h2">{habit.name}</Typography>
+                <Typography>{habit.currentStreak} day current streak</Typography>
+                <Typography>Tracking since {formatVietnamDate(habit.createdAt)}</Typography>
+              </div>
+              <WeekGrid days={habit.lastSevenDays} />
+            </>
+          ) : (
+            <Typography className="text-center py-4">
+              This share link is unavailable.
+            </Typography>
+          )}
+        </Box>
+      </Paper>
+    </Container>
   );
 }

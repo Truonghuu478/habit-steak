@@ -1,3 +1,7 @@
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Typography from "@mui/material/Typography";
+
 type Props = {
   email: string | undefined;
   onLogout: () => void;
@@ -5,17 +9,21 @@ type Props = {
 
 export default function Header({ email, onLogout }: Props) {
   return (
-    <section className="hero">
+    <Box className="flex items-start justify-between gap-8 mb-8 max-md:flex-col">
       <div>
-        <p className="eyebrow">Habit Streak</p>
-        <h1>Build boring consistency into visible momentum.</h1>
-        <p className="lede">
+        <Typography variant="overline" component="p" className="mb-3">
+          Habit Streak
+        </Typography>
+        <Typography variant="h1" component="h1" className="max-w-[720px] mb-4 max-sm:hidden">
+          Build boring consistency into visible momentum.
+        </Typography>
+        <Typography variant="body2" className="max-w-[620px] max-sm:hidden">
           Create habits, mark one completion per day, and track the last seven days without editable history.
-        </p>
+        </Typography>
       </div>
-      <button className="ghost" onClick={onLogout}>
+      <Button variant="outlined" onClick={onLogout}>
         Log out {email}
-      </button>
-    </section>
+      </Button>
+    </Box>
   );
 }
