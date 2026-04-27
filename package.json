@@ -7,9 +7,11 @@
     "dev": "concurrently \"npm:dev:server\" \"npm:dev:web\"",
     "dev:server": "tsx watch server/src/index.ts",
     "dev:web": "vite --host 0.0.0.0",
-    "build": "tsc --noEmit && vite build && tsc -p tsconfig.server.json",
+    "build": "npm run prisma:generate && tsc --noEmit && vite build && tsc -p tsconfig.server.json",
     "start": "node dist-server/index.js",
-    "db:init": "sqlite3 prisma/dev.db < prisma/migrations/20260427000000_init/migration.sql && npm run prisma:generate",
+    "db:up": "docker compose up -d --force-recreate postgres",
+    "db:down": "docker compose down",
+    "db:init": "npm run prisma:generate && prisma migrate deploy",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio"

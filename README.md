@@ -5,7 +5,7 @@ Full-stack TypeScript MVP for habit streak tracking.
 ## Scope
 
 - Auth: register, login, password hashing, JWT middleware.
-- Habits: create and list habits only. There is intentionally no `PUT` or `PATCH` route.
+- Habits: create, list, and toggle public sharing. There is intentionally no full update or delete route.
 - Streaks: mark a habit done once per Vietnam local day, calculate current streak, return the last seven days.
 - Sharing: enable a read-only public link for a habit without exposing user account data.
 - Frontend: React forms, token persistence, loading/error states, responsive habit dashboard.
@@ -15,29 +15,47 @@ Full-stack TypeScript MVP for habit streak tracking.
 ```bash
 cp .env.example .env
 npm install
-npm run prisma:generate
-npm run prisma:migrate -- --name init
+npm run db:up
+npm run db:init
 npm run dev
 ```
 
 Frontend runs on `http://localhost:5173`.
 Backend runs on `http://localhost:4000`.
 
-If Prisma migrate fails on your local machine because of a schema-engine binary issue, initialize the SQLite database with the committed SQL migration:
+This project now expects PostgreSQL for both local development and Railway deployment. Start a local Postgres instance first, then point `DATABASE_URL` at it before running Prisma commands.
+
+The repository includes a local Docker Compose Postgres service that matches the default `.env.example` connection string.
+
+The Docker setup publishes Postgres on host port `5433` by default to avoid collisions with other local Postgres containers or services already using `5432`.
 
 ```bash
+npm run db:up
 npm run db:init
+npm run dev
 ```
+
+When you are done with the local database:
+
+```bash
+npm run db:down
+```
+
+Use `npm run prisma:migrate -- --name <migration-name>` only when you intentionally change the Prisma schema and want to create a new migration.
 
 ## Environment
 
 ```bash
-DATABASE_URL="file:./dev.db"
+DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5433/habit_steak?schema=public"
 JWT_SECRET="replace-with-a-long-random-secret"
 PORT=4000
 CLIENT_ORIGIN="http://localhost:5173"
 VITE_API_URL="http://localhost:4000/api"
 ```
+
+If you want to apply only the committed migrations against an existing Postgres database, run `npm run db:init`.
+
+`VITE_API_URL` is optional in production when the frontend and API are served from the same Railway service. In that setup, the client falls back to `/api` automatically.
 
 ## API
 
@@ -70,13 +88,30 @@ Each habit can optionally expose a public share link.
 ## Railway Deploy
 
 1. Push the repository to GitHub.
-2. In Railway, create a new project and choose Deploy from GitHub.
-3. Select this repository.
-4. Add the required environment variables: `DATABASE_URL`, `JWT_SECRET`, `CLIENT_ORIGIN`, and `VITE_API_URL`.
-5. Let Railway build the app with `npm run build` and start it with `npm start`.
-6. After deploy, set `CLIENT_ORIGIN` and `VITE_API_URL` to your Railway app URL.
+2. Create or attach a Railway Postgres service.
+3. In Railway, create a new project and choose Deploy from GitHub.
+4. Select this repository.
+5. In the web service variables, set `DATABASE_URL` by referencing the attached Postgres service instead of pasting a local connection string.
+6. Set `JWT_SECRET` to a long random secret.
+7. Set `CLIENT_ORIGIN` to the public URL of your Railway web service or your custom domain.
+8. Leave `PORT` unset on Railway. Railway injects it automatically and the server already listens to `process.env.PORT`.
+9. Set `VITE_API_URL` only if your API is hosted on a different origin. If the same Railway service serves both frontend and backend, leave it unset.
+10. Let Railway build the app with `npm run build` and start it with `npm start`.
+11. After the first successful deploy, run `npm run db:init` once in the Railway service shell or as a one-off command to apply the committed Postgres migrations.
 
 The server listens on `process.env.PORT || 4000` and serves the built Vite app from `dist` in production, so the public share route works from the same Railway service.
+
+For Railway production, `DATABASE_URL` must point to Postgres. The committed Prisma migrations in this repo are now Postgres migrations.
+
+Recommended Railway variable setup for a single-service deploy:
+
+| Variable | Railway value |
+| --- | --- |
+| `DATABASE_URL` | Reference to the attached Postgres service `DATABASE_URL` |
+| `JWT_SECRET` | Manually generated secret |
+| `CLIENT_ORIGIN` | `https://<your-railway-domain>` or your custom domain |
+| `VITE_API_URL` | Omit unless the API is hosted on a different domain |
+| `PORT` | Omit |
 
 ## Validation Notes
 

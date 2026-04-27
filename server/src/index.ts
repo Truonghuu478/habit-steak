@@ -378,5 +378,5 @@ app.use((_req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`API listening on http://localhost:${port}`);
+  console.log(`Server listening on port ${port}`);
 });
