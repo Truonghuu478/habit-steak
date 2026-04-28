@@ -113,8 +113,15 @@ export const markHabitDone: RequestHandler = async (req, res) => {
     });
 
     res.status(201).json({ streak });
-  } catch {
-    res.status(409).json({ message: "Habit already marked for today" });
+  } catch (error: any) {
+    if (error?.code === "P2002") {
+      const existingStreak = await prisma.streak.findFirst({
+        where: { habitId: habit.id, dateKey }
+      });
+      res.status(200).json({ streak: existingStreak });
+      return;
+    }
+    throw error;
   }
 };
 

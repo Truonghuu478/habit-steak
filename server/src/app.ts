@@ -65,6 +65,15 @@ const createApp = (options: CreateAppOptions = {}) => {
     res.status(404).json({ message: "Route not found" });
   });
 
+  // Global error handler
+  app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    console.error(err);
+    res.status(err.status || 500).json({
+      message: err.message || "Internal Server Error",
+      code: err.code || "INTERNAL_ERROR"
+    });
+  });
+
   return app;
 };
 

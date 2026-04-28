@@ -40,6 +40,11 @@ export const getLastSevenDateKeys = () => getLastDateKeys(7);
 export const calculateCurrentStreak = (dateKeys: string[]) => {
   const completed = new Set(dateKeys);
   let cursor = dayjs().tz(APP_TIMEZONE).startOf("day");
+
+  if (!completed.has(cursor.format("YYYY-MM-DD"))) {
+    cursor = cursor.subtract(1, "day");
+  }
+
   let count = 0;
 
   while (completed.has(cursor.format("YYYY-MM-DD"))) {
