@@ -29,15 +29,22 @@ export const getDateKey = (value = dayjs()) => value.tz(APP_TIMEZONE).format("YY
 
 export const getTodayKey = () => getDateKey();
 
-export const getLastSevenDateKeys = () => {
+export const getLastDateKeys = (range = 7) => {
   const today = dayjs().tz(APP_TIMEZONE);
 
-  return Array.from({ length: 7 }, (_value, index) => getDateKey(today.subtract(6 - index, "day")));
+  return Array.from({ length: range }, (_value, index) => getDateKey(today.subtract(range - 1 - index, "day")));
 };
+
+export const getLastSevenDateKeys = () => getLastDateKeys(7);
 
 export const calculateCurrentStreak = (dateKeys: string[]) => {
   const completed = new Set(dateKeys);
   let cursor = dayjs().tz(APP_TIMEZONE).startOf("day");
+
+  if (!completed.has(cursor.format("YYYY-MM-DD"))) {
+    cursor = cursor.subtract(1, "day");
+  }
+
   let count = 0;
 
   while (completed.has(cursor.format("YYYY-MM-DD"))) {
