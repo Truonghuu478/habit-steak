@@ -20,36 +20,42 @@ The main user flows are:
 
 ### Frontend
 
-- Location: `src/`
+- Location: `apps/frontend/src/`
 - Stack: React + Vite + TypeScript
 - Responsibility: forms, auth token storage, dashboard rendering, public habit page consumption
-- API client: `src/lib/api.ts`
+- API client: `apps/frontend/src/lib/api.ts`
+- Deployment target: Vercel
+- Routing note: `apps/frontend/vercel.json` rewrites SPA routes such as `/public/habits/:shareId` to `index.html`
 
 ### Backend
 
-- Location: `server/src/`
+- Location: `apps/backend/src/`
 - Stack: Express + TypeScript
-- App entry: `server/src/index.ts`
-- App composition: `server/src/app.ts`
-- Routes: `server/src/routes/`
-- Controllers: `server/src/controllers/`
-- Auth middleware: `server/src/middleware/auth.ts`
-- Streak logic: `server/src/utils/streaks.ts`
-- Environment access: `server/src/config/env.ts`
+- App entry: `apps/backend/src/index.ts`
+- App composition: `apps/backend/src/app.ts`
+- Routes: `apps/backend/src/routes/`
+- Controllers: `apps/backend/src/controllers/`
+- Auth middleware: `apps/backend/src/middleware/auth.ts`
+- Streak logic: `apps/backend/src/utils/streaks.ts`
+- Environment access: `apps/backend/src/config/env.ts`
+- Deployment target: Render
+- Boundary note: the backend exposes only `/api` routes and no longer serves the frontend bundle
 
 ### Database
 
-- Location: `prisma/`
+- Location: `apps/backend/prisma/`
 - Stack: Prisma + PostgreSQL
-- Schema source: `prisma/schema.prisma`
-- Migrations: `prisma/migrations/`
+- Schema source: `apps/backend/prisma/schema.prisma`
+- Migrations: `apps/backend/prisma/migrations/`
 
 ## Environment Model
 
-- Local development backend uses `.env.development`
-- Backend tests use `.env.test`
+- Local development backend uses `apps/backend/.env.development`
+- Local development frontend uses `apps/frontend/.env.development`
+- Backend tests use `apps/backend/.env.test`
 - Production uses host-platform environment variables
 - Frontend Vite variables use the `VITE_` prefix and are read by Vite during development and build
+- Frontend builds fail if `VITE_API_URL` is missing or does not end with `/api`
 
 Current backend env variables:
 
@@ -73,9 +79,8 @@ Current frontend env variable:
 
 ### Habits
 
-- Habits can be created and listed
+- Habits can be created, listed, updated, and deleted
 - Habits can toggle public sharing on and off
-- The current scope does not include full update or delete routes
 
 ### Streaks
 
@@ -84,6 +89,7 @@ Current frontend env variable:
 - Duplicate completion for the same habit and same local day is not allowed
 - Current streak is computed by walking backward from the current local day
 - The client receives a seven-day summary alongside the current streak
+- A streak entry can be removed by date without changing the timezone rule
 
 ### Public Sharing
 
@@ -95,7 +101,10 @@ Current frontend env variable:
 
 - CORS is controlled by `CLIENT_ORIGIN` and is matched strictly in the backend
 - Local Docker Compose provides PostgreSQL on host port `5433`
-- Build output is generated into `dist/` and `dist-server/`
+- The backend listens on `process.env.PORT`
+- Build output is generated into `apps/frontend/dist/` and `apps/backend/dist/`
+- Render builds the backend with `npm install && npm run build` from `apps/backend`
+- Vercel builds the frontend with `npm run build` from `apps/frontend`
 
 ## Change Checklist
 
@@ -134,7 +143,7 @@ Use this checklist whenever you add a feature or change business logic.
 
 ### If you change the data model
 
-- Update `prisma/schema.prisma`
+- Update `apps/backend/prisma/schema.prisma`
 - Create or update the Prisma migration
 - Update docs when the schema change affects API behavior or business rules
 

@@ -1,4 +1,18 @@
-const API_URL = import.meta.env.VITE_API_URL ?? (import.meta.env.PROD ? "/api" : "http://localhost:4000/api");
+const resolveApiUrl = (apiUrl: string | undefined) => {
+  if (!apiUrl) {
+    throw new Error("VITE_API_URL is required and must include the /api suffix");
+  }
+
+  const normalizedUrl = apiUrl.trim().replace(/\/+$/, "");
+
+  if (!normalizedUrl.endsWith("/api")) {
+    throw new Error("VITE_API_URL must include the /api suffix");
+  }
+
+  return normalizedUrl;
+};
+
+const API_URL = resolveApiUrl(import.meta.env.VITE_API_URL);
 
 export type HabitDay = {
   dateKey: string;

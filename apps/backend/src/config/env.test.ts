@@ -69,3 +69,23 @@ test("throws when PORT is missing", async () => {
 
   await assert.rejects(importFreshEnvModule(), /PORT is required/);
 });
+
+test("throws when CLIENT_ORIGIN is missing", async () => {
+  process.env.APP_TIMEZONE = "Asia/Ho_Chi_Minh";
+  delete process.env.CLIENT_ORIGIN;
+  process.env.DATABASE_URL = "postgresql://postgres:postgres@127.0.0.1:5433/habit_steak?schema=public";
+  process.env.JWT_SECRET = "replace-with-a-long-random-secret";
+  process.env.PORT = "4000";
+
+  await assert.rejects(importFreshEnvModule(), /CLIENT_ORIGIN is required/);
+});
+
+test("throws when DATABASE_URL is missing", async () => {
+  process.env.APP_TIMEZONE = "Asia/Ho_Chi_Minh";
+  process.env.CLIENT_ORIGIN = "http://localhost:5173";
+  delete process.env.DATABASE_URL;
+  process.env.JWT_SECRET = "replace-with-a-long-random-secret";
+  process.env.PORT = "4000";
+
+  await assert.rejects(importFreshEnvModule(), /DATABASE_URL is required/);
+});

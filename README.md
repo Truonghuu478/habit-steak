@@ -1,14 +1,36 @@
 # Habit Streak
 
-Full-stack TypeScript MVP for habit streak tracking.
+Full-stack TypeScript habit tracking app with a split deployment model:
+
+- Frontend: Vite + React, deployed to Vercel
+- Backend: Express + Prisma, deployed to Render
+- Database: PostgreSQL
+
+The backend preserves the existing `/api` contract and no longer serves the frontend bundle.
+
+## Architecture
+
+```text
+apps/
+	backend/
+		prisma/
+		src/
+	frontend/
+		src/
+		vercel.json
+docker-compose.yml
+README.md
+render.yaml
+validate.js
+```
 
 ## Scope
 
-- Auth: register, login, password hashing, JWT middleware.
-- Habits: create, list, and toggle public sharing. There is intentionally no full update or delete route.
-- Streaks: mark a habit done once per Vietnam local day, calculate current streak, return the last seven days.
-- Sharing: enable a read-only public link for a habit without exposing user account data.
-- Frontend: React forms, token persistence, loading/error states, responsive habit dashboard.
+- Auth: register, login, password hashing, JWT middleware
+- Habits: create, list, update, delete, and toggle public sharing
+- Streaks: mark a habit done once per Vietnam local day, calculate current streak, return the last seven days, and remove a completion by date
+- Sharing: expose a read-only public link without exposing user account data
+- Frontend: token persistence, auth headers, dashboard rendering, and public habit page consumption
 
 ## AI Context
 
@@ -16,30 +38,20 @@ The repository keeps AI-readable project context in `AGENTS.md`, `.github/copilo
 
 When a feature, API contract, environment model, or business rule changes, update the affected documentation files in the same task so future agents read current information.
 
-## Setup
+## Local Setup
 
 ```bash
-cp .env.example .env.development
+cp apps/backend/.env.example apps/backend/.env.development
+cp apps/frontend/.env.example apps/frontend/.env.development
 npm install
 npm run db:up
 npm run db:init
 npm run dev
 ```
 
-Frontend runs on `http://localhost:5173`.
-Backend runs on `http://localhost:4000`.
-
-This project now expects PostgreSQL for both local development and Railway deployment. Start a local Postgres instance first, then point `DATABASE_URL` at it before running Prisma commands.
-
-The repository includes a local Docker Compose Postgres service that matches the default `.env.example` connection string.
-
-The Docker setup publishes Postgres on host port `5433` by default to avoid collisions with other local Postgres containers or services already using `5432`.
-
-```bash
-npm run db:up
-npm run db:init
-npm run dev
-```
+- Frontend runs on `http://localhost:5173`
+- Backend runs on `http://localhost:4000`
+- Local Docker Compose publishes PostgreSQL on host port `5433`
 
 When you are done with the local database:
 
@@ -47,13 +59,15 @@ When you are done with the local database:
 npm run db:down
 ```
 
-Use `npm run prisma:migrate -- --name <migration-name>` only when you intentionally change the Prisma schema and want to create a new migration.
+Use `npm run prisma:migrate -- --name <migration-name>` only when you intentionally change `apps/backend/prisma/schema.prisma` and want to create a new migration.
 
 ## Environment
 
-Local development uses `.env.development`.
-Backend tests use `.env.test`.
-Production should use platform-provided environment variables such as Railway service variables.
+Backend local development uses `apps/backend/.env.development`.
+Frontend local development uses `apps/frontend/.env.development`.
+Backend tests use `apps/backend/.env.test`.
+
+Example local values:
 
 ```bash
 DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5433/habit_steak?schema=public"
@@ -64,15 +78,15 @@ APP_TIMEZONE="Asia/Ho_Chi_Minh"
 VITE_API_URL="http://localhost:4000/api"
 ```
 
+Rules:
+
+- Backend requires `DATABASE_URL`, `JWT_SECRET`, and `CLIENT_ORIGIN`
+- Backend reads `PORT` from `process.env.PORT`; Render injects it automatically
+- Frontend requires `VITE_API_URL`, and it must end with `/api`
+- Frontend builds fail fast if `VITE_API_URL` is missing or malformed
+- `APP_TIMEZONE` defaults to `Asia/Ho_Chi_Minh`
+
 If you want to apply only the committed migrations against an existing Postgres database, run `npm run db:init`.
-
-`VITE_API_URL` is optional in production when the frontend and API are served from the same Railway service. In that setup, the client falls back to `/api` automatically.
-
-For local development, `npm run dev` loads `.env.development` for the backend and Vite automatically reads the same file for frontend variables.
-
-For backend tests, `npm run test:server` loads `.env.test`.
-
-For production, `npm start` expects real environment variables from the host platform. If you want to smoke-test the production build locally, export those variables in your shell or provide a local `.env` file yourself.
 
 ## API
 
@@ -84,9 +98,12 @@ For production, `npm start` expects real environment variables from the host pla
 | `GET` | `/api/me` | Yes | Return token user |
 | `GET` | `/api/habits` | Yes | List habits with streak summary |
 | `POST` | `/api/habits` | Yes | Create habit |
+| `PATCH` | `/api/habits/:habitId` | Yes | Rename a habit |
+| `DELETE` | `/api/habits/:habitId` | Yes | Delete a habit |
 | `PATCH` | `/api/habits/:habitId/share` | Yes | Enable or disable public sharing |
 | `POST` | `/api/streaks/:habitId` | Yes | Mark today as completed |
 | `GET` | `/api/streaks/:habitId` | Yes | Return streak history |
+| `DELETE` | `/api/streaks/:habitId?date=YYYY-MM-DD` | Yes | Remove a completion for a specific day |
 | `GET` | `/api/public/habits/:shareId` | No | Read-only public habit summary |
 
 ## Streak Logic
@@ -97,59 +114,55 @@ The backend stores daily completions as `YYYY-MM-DD` `dateKey` values in the `As
 
 Each habit can optionally expose a public share link.
 
-- `shareId` is a nullable UUID generated the first time sharing is enabled.
-- `isPublic` controls whether the link is live.
-- Public responses return only habit-level read-only data: name, created date, current streak, and the last seven days.
-- User email and other account fields are never returned by the public endpoint.
+- `shareId` is a nullable UUID generated the first time sharing is enabled
+- `isPublic` controls whether the link is live
+- Public responses return only habit-level read-only data: name, created date, current streak, and the last seven days
+- User email and other account fields are never returned by the public endpoint
 
-## Railway Deploy
+## Deploy
+
+### Backend on Render
 
 1. Push the repository to GitHub.
-2. Create or attach a Railway Postgres service.
-3. In Railway, create a new project and choose Deploy from GitHub.
-4. Select this repository.
-5. In the web service variables, set `DATABASE_URL` by referencing the attached Postgres service instead of pasting a local connection string.
-6. Set `JWT_SECRET` to a long random secret.
-7. Set `CLIENT_ORIGIN` to the public URL of your Railway web service or your custom domain.
-8. Leave `PORT` unset on Railway. Railway injects it automatically and the server already listens to `process.env.PORT`.
-9. Set `VITE_API_URL` only if your API is hosted on a different origin. If the same Railway service serves both frontend and backend, leave it unset.
-10. Let Railway build the app with `npm run build` and start it with `npm start`.
-11. After the first successful deploy, run `npm run db:init` once in the Railway service shell or as a one-off command to apply the committed Postgres migrations.
+2. Create a Render PostgreSQL database.
+3. Create a Render Web Service pointing at this repository.
+4. Set the Root Directory to `apps/backend`.
+5. Set the Build Command to `npm install && npm run build`.
+6. Set the Start Command to `npm start`.
+7. Configure environment variables:
 
-The server listens on `process.env.PORT` and serves the built Vite app from `dist` in production, so the public share route works from the same Railway service.
-
-For Railway production, `DATABASE_URL` must point to Postgres. The committed Prisma migrations in this repo are now Postgres migrations.
-
-Recommended Railway variable setup for a single-service deploy:
-
-| Variable | Railway value |
+| Variable | Value |
 | --- | --- |
-| `DATABASE_URL` | Reference to the attached Postgres service `DATABASE_URL` |
-| `JWT_SECRET` | Manually generated secret |
-| `CLIENT_ORIGIN` | `https://<your-railway-domain>` or your custom domain |
-| `VITE_API_URL` | Omit unless the API is hosted on a different domain |
-| `PORT` | Omit |
+| `DATABASE_URL` | Render PostgreSQL connection string |
+| `JWT_SECRET` | Long random secret |
+| `CLIENT_ORIGIN` | Your Vercel frontend URL, for example `https://your-frontend.vercel.app` |
+| `APP_TIMEZONE` | `Asia/Ho_Chi_Minh` |
+| `PORT` | Omit, Render injects it automatically |
+
+8. After the first successful deploy, run `npm run db:init` from the Render shell or as a one-off job to apply committed migrations.
+9. Use `/api/health` as the health check path.
+
+An optional `render.yaml` blueprint is included at the repository root if you want Render to prefill the service configuration.
+
+### Frontend on Vercel
+
+1. Import the repository into Vercel.
+2. Set the Root Directory to `apps/frontend`.
+3. Set the Framework Preset to `Vite`.
+4. Set the Build Command to `npm run build`.
+5. Set the Output Directory to `dist`.
+6. Configure `VITE_API_URL` as the full Render API URL, for example `https://your-backend.onrender.com/api`.
+7. Deploy. `apps/frontend/vercel.json` rewrites SPA routes so direct hits to `/public/habits/:shareId` resolve correctly.
+
+## Validation
+
+- `npm run test:server` validates backend routing, CORS behavior, auth middleware, and controller rules
+- `npm run build:backend` validates Prisma client generation and backend TypeScript output
+- `VITE_API_URL=http://127.0.0.1:4000/api npm run build:frontend` validates the frontend build with an explicit API origin
+- `API_URL=http://127.0.0.1:4000/api node validate.js` performs an end-to-end API smoke test against a running backend. Set `FRONTEND_URL` as well if you want it to verify the public frontend route.
 
 ## Validation Notes
 
-The following runtime checks were executed locally against the built app:
-
-- Register user: `201`, token returned.
-- Create habit: `201`.
-- First streak mark: `201`, returned `dateKey` matched the current `Asia/Ho_Chi_Minh` day.
-- Duplicate streak mark: `409`, `Habit already marked for today`.
-- Private habit list: `200`, returned `currentStreak`, seven-day history, `isPublic`, and `shareId`.
-- Enable share: `200`, UUID `shareId` returned.
-- Public API: `200`, returned only `name`, `createdAt`, `currentStreak`, and `lastSevenDays`.
-- Public SPA route: `200`, built HTML served successfully.
-
-## Phase Reports
-
-Use this checklist for handoff after each implementation phase:
-
-- Phase 0: environment structure, `.env` values, Prisma migration status, DB connectivity.
-- Phase 1: auth endpoints, curl/Postman evidence, valid and invalid token checks.
-- Phase 2: habit `POST`/`GET`, frontend habit list screenshot, confirmation that no update route exists.
-- Phase 3: duplicate-day streak test, current streak result, seven-day UI screenshot.
-- Phase 4: end-to-end login to logout flow, CORS/network issues found and fixed, API response observations.
-- Phase 5: manual test cases, remaining risks, deploy notes, extension ideas.
+- The frontend no longer falls back to `localhost` or relative `/api`; deployment requires an explicit `VITE_API_URL`
+- The backend no longer serves the frontend bundle and keeps strict `CLIENT_ORIGIN` matching with `credentials: true`
+- Root scripts proxy to the workspace apps so local development still starts from the repository root

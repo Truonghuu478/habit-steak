@@ -4,25 +4,26 @@ Use [AGENTS.md](../AGENTS.md) as the shared project brief and [docs/project-cont
 
 ## Repo Shape
 
-- Frontend React app: `src/`
-- Backend Express app: `server/src/`
-- Prisma schema and migrations: `prisma/`
-- Generated output: `dist/`, `dist-server/`
+- Frontend React app: `apps/frontend/src/`
+- Backend Express app: `apps/backend/src/`
+- Prisma schema and migrations: `apps/backend/prisma/`
+- Generated output: `apps/frontend/dist/`, `apps/backend/dist/`
 
 ## Product Invariants
 
 - Habit streaks are calculated per `Asia/Ho_Chi_Minh` local day
 - A habit can only be marked complete once per local day
 - Public share responses must stay read-only and must not expose user account data
-- Habit scope currently supports create, list, and share toggle only
+- Preserve the current API contract, including update, delete, and streak unmark endpoints used by the frontend
 - Backend CORS uses strict `CLIENT_ORIGIN` matching
 
 ## Environment Rules
 
-- Local backend development: `.env.development`
-- Backend tests: `.env.test`
+- Local backend development: `apps/backend/.env.development`
+- Local frontend development: `apps/frontend/.env.development`
+- Backend tests: `apps/backend/.env.test`
 - Production: platform-provided `process.env`
-- Backend env access must stay centralized in `server/src/config/env.ts`
+- Backend env access must stay centralized in `apps/backend/src/config/env.ts`
 
 ## Documentation Rules
 
@@ -35,7 +36,7 @@ When you implement a feature or change business logic, update the related docume
 
 ## Code Change Rules
 
-- Do not add a full habit update or delete flow unless the task explicitly requires it
-- Do not edit `dist/` or `dist-server/` manually
+- Do not remove or break the existing habit update/delete or streak unmark endpoints unless the task explicitly changes the API contract
+- Do not edit `apps/frontend/dist/` or `apps/backend/dist/` manually
 - Prefer updating existing controllers, middleware, and utilities instead of creating duplicate logic
 - Add or update tests when API behavior or business rules change

@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: habit-steak-backend
+    env: node
+    plan: free
+    rootDir: apps/backend
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: APP_TIMEZONE
+        value: Asia/Ho_Chi_Minh
+      - key: CLIENT_ORIGIN
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: habit-steak-postgres
+          property: connectionString
+
+databases:
+  - name: habit-steak-postgres
+    plan: free

@@ -1,6 +1,3 @@
-import { existsSync } from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import cors, { type CorsOptions } from "cors";
 import express from "express";
 import { CLIENT_ORIGIN } from "./config/env.js";
@@ -9,21 +6,11 @@ import { habitRoutes } from "./routes/habitRoutes.js";
 import { publicRoutes } from "./routes/publicRoutes.js";
 import { systemRoutes } from "./routes/systemRoutes.js";
 
-const serverDir = path.dirname(fileURLToPath(import.meta.url));
-const projectRoot = path.resolve(serverDir, path.basename(serverDir) === "src" ? "../.." : "..");
-const clientDistDir = path.join(projectRoot, "dist");
-const clientIndexPath = path.join(clientDistDir, "index.html");
-const canServeClient = existsSync(clientIndexPath);
-
 type CreateAppOptions = {
   clientOrigin?: string;
 };
 
-const resolveCorsOrigin = (allowedOrigin?: string): CorsOptions["origin"] => {
-  if (!allowedOrigin) {
-    return true;
-  }
-
+const resolveCorsOrigin = (allowedOrigin: string): CorsOptions["origin"] => {
   return (requestOrigin, callback) => {
     if (!requestOrigin) {
       callback(null, true);
@@ -39,7 +26,8 @@ const createApp = (options: CreateAppOptions = {}) => {
 
   app.use(
     cors({
-      origin: resolveCorsOrigin(options.clientOrigin ?? CLIENT_ORIGIN)
+      origin: resolveCorsOrigin(options.clientOrigin ?? CLIENT_ORIGIN),
+      credentials: true
     })
   );
   app.use(express.json());
@@ -48,18 +36,6 @@ const createApp = (options: CreateAppOptions = {}) => {
   app.use("/api", authRoutes);
   app.use("/api", habitRoutes);
   app.use("/api", publicRoutes);
-
-  if (canServeClient) {
-    app.use(express.static(clientDistDir));
-
-    app.get("/", (_req, res) => {
-      res.sendFile(clientIndexPath);
-    });
-
-    app.get("/public/habits/:shareId", (_req, res) => {
-      res.sendFile(clientIndexPath);
-    });
-  }
 
   app.use((_req, res) => {
     res.status(404).json({ message: "Route not found" });

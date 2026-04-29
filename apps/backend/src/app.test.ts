@@ -3,6 +3,7 @@ import type { Server } from "node:http";
 import test from "node:test";
 
 const startServer = async (clientOrigin = "http://localhost:5173") => {
+  process.env.DATABASE_URL = process.env.DATABASE_URL ?? "postgresql://postgres:postgres@127.0.0.1:5433/habit_steak?schema=public";
   process.env.JWT_SECRET = process.env.JWT_SECRET ?? "test-jwt-secret";
   process.env.CLIENT_ORIGIN = process.env.CLIENT_ORIGIN ?? clientOrigin;
   process.env.PORT = process.env.PORT ?? "4000";
@@ -11,16 +12,22 @@ const startServer = async (clientOrigin = "http://localhost:5173") => {
   const { createApp } = mod;
   const app = createApp({ clientOrigin });
 
-  return new Promise<{ baseUrl: string; server: Server }>((resolve) => {
-    const server = app.listen(0, "127.0.0.1", () => {
+  return new Promise<{ baseUrl: string; server: Server }>((resolve, reject) => {
+    const server = app.listen(0);
+
+    server.once("error", reject);
+    server.once("listening", () => {
       const address = server.address();
 
       if (!address || typeof address === "string") {
-        throw new Error("Failed to determine test server address");
+        reject(new Error("Failed to determine test server address"));
+        return;
       }
 
+      const host = address.family === "IPv6" ? "[::1]" : address.address;
+
       resolve({
-        baseUrl: `http://127.0.0.1:${address.port}`,
+        baseUrl: `http://${host}:${address.port}`,
         server
       });
     });
@@ -70,6 +77,7 @@ test("accepts the configured development origin on preflight requests", async (t
 
   assert.equal(response.status, 204);
   assert.equal(response.headers.get("access-control-allow-origin"), "http://localhost:5173");
+  assert.equal(response.headers.get("access-control-allow-credentials"), "true");
   assert.match(response.headers.get("vary") ?? "", /Origin/);
 });
 

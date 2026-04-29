@@ -1,62 +1,113 @@
-import async_hooks
-async function run() {
-  const baseUrl = 'http://localhost:4100';
-  const email = 'test-' + Date.now() + '@example.com';
-  let cookie, habitId, shareId;
+const API_URL = process.env.API_URL?.replace(/\/+$/, "");
+const FRONTEND_URL = process.env.FRONTEND_URL?.replace(/\/+$/, "");
 
-  const r1 = await fetch(baseUrl + '/api/register', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password: 'password123' })
+const password = "password123";
+const email = `test-${Date.now()}@example.com`;
+
+const request = async (path, options = {}) => {
+  const response = await fetch(`${API_URL}${path}`, {
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers
+    },
+    ...options
   });
-  console.log('1) Register:', r1.status);
-  cookie = r1.headers.get('set-cookie');
 
-  const r2 = await fetch(baseUrl + '/api/habits', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Cookie': cookie },
-    body: JSON.stringify({ name: 'Test Habit' })
+  const text = await response.text();
+  const data = text ? JSON.parse(text) : null;
+
+  return { response, data };
+};
+
+const assert = (condition, message) => {
+  if (!condition) {
+    throw new Error(message);
+  }
+};
+
+const logResult = (label, details) => {
+  console.log(`${label}: ${details}`);
+};
+
+const run = async () => {
+  assert(typeof API_URL === "string" && API_URL.length > 0, "API_URL is required, for example API_URL=http://127.0.0.1:4000/api");
+
+  const registerResult = await request("/auth/register", {
+    method: "POST",
+    body: JSON.stringify({ email, password })
   });
-  const h = await r2.json();
-  habitId = h.id;
-  console.log('2) Create Habit:', r2.status, 'ID:', habitId);
+  assert(registerResult.response.status === 201, `register failed with ${registerResult.response.status}`);
+  assert(typeof registerResult.data?.token === "string", "register did not return a token");
+  logResult("Register", `${registerResult.response.status}`);
 
-  const r3 = await fetch(baseUrl + '/api/habits/' + habitId + '/entries', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Cookie': cookie },
-    body: JSON.stringify({ dateKey: new Date().toISOString().split('T')[0] })
+  const loginResult = await request("/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ email, password })
   });
-  const e1 = await r3.json();
-  console.log('3) Mark Done:', r3.status, 'dateKey:', e1.dateKey);
+  assert(loginResult.response.status === 200, `login failed with ${loginResult.response.status}`);
+  assert(typeof loginResult.data?.token === "string", "login did not return a token");
+  const token = loginResult.data.token;
+  logResult("Login", `${loginResult.response.status}, token returned`);
 
-  const r4 = await fetch(baseUrl + '/api/habits/' + habitId + '/entries', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Cookie': cookie },
-    body: JSON.stringify({ dateKey: new Date().toISOString().split('T')[0] })
+  const authHeaders = {
+    Authorization: `Bearer ${token}`
+  };
+
+  const createHabitResult = await request("/habits", {
+    method: "POST",
+    headers: authHeaders,
+    body: JSON.stringify({ name: "Split Deploy Smoke Test" })
   });
-  const e2 = await r4.json();
-  console.log('4) Mark Duplicate:', r4.status, 'Body:', JSON.stringify(e2));
+  assert(createHabitResult.response.status === 201, `create habit failed with ${createHabitResult.response.status}`);
+  const habitId = createHabitResult.data?.habit?.id;
+  assert(typeof habitId === "string", "create habit did not return a habit id");
+  logResult("Create Habit", `${createHabitResult.response.status}, ${habitId}`);
 
-  const r5 = await fetch(baseUrl + '/api/habits', { headers: { 'Cookie': cookie } });
-  const hs = await r5.json();
-  const habit = hs[0];
-  console.log('5) Fetch Habits:', r5.status, 'Streak:', habit.currentStreak, 'Fields:', Object.keys(habit).join(','));
+  const markDoneResult = await request(`/streaks/${habitId}`, {
+    method: "POST",
+    headers: authHeaders
+  });
+  assert(markDoneResult.response.status === 201, `mark streak failed with ${markDoneResult.response.status}`);
+  const dateKey = markDoneResult.data?.streak?.dateKey;
+  assert(typeof dateKey === "string", "mark streak did not return a dateKey");
+  logResult("Mark Streak", `${markDoneResult.response.status}, ${dateKey}`);
 
-  const r6 = await fetch(baseUrl + '/api/habits/' + habitId + '/share', {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', 'Cookie': cookie },
+  const duplicateMarkResult = await request(`/streaks/${habitId}`, {
+    method: "POST",
+    headers: authHeaders
+  });
+  assert(duplicateMarkResult.response.status === 409, `duplicate streak mark should return 409, got ${duplicateMarkResult.response.status}`);
+  logResult("Duplicate Streak", `${duplicateMarkResult.response.status}, ${duplicateMarkResult.data?.message ?? "no message"}`);
+
+  const shareResult = await request(`/habits/${habitId}/share`, {
+    method: "PATCH",
+    headers: authHeaders,
     body: JSON.stringify({ isPublic: true })
   });
-  const sh = await r6.json();
-  shareId = sh.shareId;
-  console.log('6) Enable Share:', r6.status, 'shareId:', shareId);
+  assert(shareResult.response.status === 200, `share toggle failed with ${shareResult.response.status}`);
+  const shareId = shareResult.data?.habit?.shareId;
+  assert(typeof shareId === "string", "share toggle did not return a shareId");
+  logResult("Share Habit", `${shareResult.response.status}, ${shareId}`);
 
-  const r7 = await fetch(baseUrl + '/api/public/habits/' + shareId);
-  const ph = await r7.json();
-  console.log('7) Public API:', r7.status, 'Fields:', Object.keys(ph).join(','));
+  const publicHabitResult = await request(`/public/habits/${shareId}`);
+  assert(publicHabitResult.response.status === 200, `public habit failed with ${publicHabitResult.response.status}`);
+  const publicHabit = publicHabitResult.data?.habit;
+  assert(typeof publicHabit?.name === "string", "public habit response is missing the habit name");
+  assert(!("email" in publicHabit), "public habit response leaked user data");
+  logResult("Public Habit API", `${publicHabitResult.response.status}, read-only fields returned`);
 
-  const r8 = await fetch(baseUrl + '/public/habits/' + shareId);
-  const html = await r8.text();
-  console.log('8) SPA Route:', r8.status, 'Is HTML:', html.toLowerCase().includes('<!doctype html>'));
-}
-run();
+  if (FRONTEND_URL) {
+    const frontendResponse = await fetch(`${FRONTEND_URL}/public/habits/${shareId}`);
+    const html = await frontendResponse.text();
+    assert(frontendResponse.status === 200, `frontend public route failed with ${frontendResponse.status}`);
+    assert(/<!doctype html>/i.test(html), "frontend public route did not return HTML");
+    logResult("Frontend Public Route", `${frontendResponse.status}, HTML returned`);
+  } else {
+    logResult("Frontend Public Route", "skipped (set FRONTEND_URL to validate the built frontend route)");
+  }
+};
+
+run().catch((error) => {
+  console.error(error.message);
+  process.exitCode = 1;
+});

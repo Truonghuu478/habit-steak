@@ -16,5 +16,5 @@
     "noEmit": true,
     "jsx": "react-jsx"
   },
-  "include": ["src", "server/src", "vite.config.ts"]
+  "include": ["apps/frontend/src", "apps/frontend/vite.config.ts", "apps/backend/src"]
 }

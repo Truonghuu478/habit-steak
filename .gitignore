@@ -1,10 +1,12 @@
 node_modules
 dist
 dist-server
+apps/frontend/dist
+apps/backend/dist
 .env
 .env.development
 .env.test
 *.db
 *.db-journal
-prisma/dev.db
+apps/backend/prisma/dev.db
 .DS_Store
